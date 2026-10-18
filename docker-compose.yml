@@ -1,0 +1,114 @@
+services:
+    # server si firefox ocupa AMANDOUA 198.7.0.2
+    # sunt puse pe profile diferite ca sa ruleze pe rand never simultan:
+    # pentru TCP-text:   docker compose --profile tcp  up -d   (porneste server + client)
+    # pentru HTTP hijack: docker compose --profile http up -d   (porneste firefox)
+    # middle si router nu au profil pornesc in ambele faze
+    server:
+        profiles: ["tcp"]
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        privileged: true
+        volumes:
+            - ..:/elocal
+        tty: true
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+          - SYS_ADMIN
+        networks:
+            net2:
+              ipv4_address: 198.7.0.2
+        depends_on:
+            - "router"
+        command: bash -c "/scripts/server.sh && sleep infinity"
+    # victima reala a atacului HTTP: firefox cu UI in browser (noVNC pe :5800)
+    firefox:
+        profiles: ["http"]
+        image: jlesage/firefox
+        cap_add:
+          - NET_ADMIN
+        security_opt:
+          - seccomp:unconfined
+        shm_size: "2gb"
+        tty: true
+        ports:
+          - "5800:5800"      # UI firefox pe host: http://localhost:5800
+        volumes:
+          - ./src/firefox-init.sh:/etc/cont-init.d/50-route.sh:ro # ar trebui sa forteze rutarea prin router
+        networks:
+            net2:
+              ipv4_address: 198.7.0.2
+        depends_on:
+            - "router"
+    middle:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        volumes:
+            - ..:/elocal
+        tty: true
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+          - SYS_ADMIN
+        networks:
+            net2:
+              ipv4_address: 198.7.0.3
+        depends_on:
+            - "router"
+        sysctls:
+          - net.ipv4.ip_forward=1
+        command: bash -c "/scripts/middle.sh && sleep infinity"
+    router:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        volumes:
+            - ..:/elocal
+        tty: true
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+          - SYS_ADMIN
+        networks:
+            net1:
+              ipv4_address: 172.7.0.1
+            net2:
+              ipv4_address: 198.7.0.1
+        sysctls:
+          - net.ipv4.ip_forward=1
+        command: bash -c "/scripts/router.sh && sleep infinity" # && /alter_packages.sh
+    client:
+        profiles: ["tcp"]
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        volumes:
+            - ..:/elocal
+        tty: true
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+          - SYS_ADMIN
+        networks:
+            net1:
+              ipv4_address: 172.7.0.2
+        depends_on:
+            - "router"
+            - "server"
+        command: bash -c "/scripts/client.sh && sleep infinity"
+networks:
+    net1:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.7.0.0/16
+                  gateway: 172.7.1.1
+    net2:
+        ipam:
+            driver: default
+            config:
+                - subnet: 198.7.0.0/16
+                  gateway: 198.7.1.1
