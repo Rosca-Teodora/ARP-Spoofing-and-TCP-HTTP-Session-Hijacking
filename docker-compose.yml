@@ -23,7 +23,7 @@ services:
         depends_on:
             - "router"
         command: bash -c "/scripts/server.sh && sleep infinity"
-    # victima reala a atacului HTTP: firefox cu UI in browser (noVNC pe :5800)
+    # victima reala a atacului HTTP: firefox cu UI in browser
     firefox:
         profiles: ["http"]
         image: jlesage/firefox
