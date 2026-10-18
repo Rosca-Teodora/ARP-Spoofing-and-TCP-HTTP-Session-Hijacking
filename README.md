@@ -1,7 +1,7 @@
 <a name="top"></a>
-# ARP Spoofing & TCP/HTTP Session Hijacking
+# ARP Spoofing and TCP/HTTP Session Hijacking
 
-A controlled laboratory exercise in man-in-the-middle (MITM) network attacks, implemented for educational and defensive-research purposes only. The project reconstructs, in a fully isolated Docker topology, the two classic phases of an attack against a local area network:
+A controlled laboratory exercise in man-in-the-middle (MITM) network attacks, implemented for educational and defensive research purposes only. The project reconstructs, in a fully isolated Docker topology, the two classic phases of an attack against a local area network:
 
 1. **ARP cache poisoning**: redirects layer 2 traffic so that an attacker host is inserted on the path between the two victims
 2. **TCP and HTTP session hijacking**: intercepting, rewriting, and reinjecting the application payloads that flow across the poisoned path
@@ -12,10 +12,10 @@ A controlled laboratory exercise in man-in-the-middle (MITM) network attacks, im
 
 ## Table of Contents
 
-- [ARP Spoofing \& TCP/HTTP Session Hijacking](#arp-spoofing--tcphttp-session-hijacking)
+- [ARP Spoofing and TCP/HTTP Session Hijacking](#arp-spoofing-and-tcphttp-session-hijacking)
   - [Table of Contents](#table-of-contents)
   - [Development Environment](#development-environment)
-  - [So how does this work?](#so-how-does-this-work)
+  - [How does it work?](#how-does-it-work)
     - [Address Resolution Protocol (ARP)](#address-resolution-protocol-arp)
     - [IP Forwarding \& NAT](#ip-forwarding--nat)
     - [TCP as a Byte Stream](#tcp-as-a-byte-stream)
@@ -27,7 +27,7 @@ A controlled laboratory exercise in man-in-the-middle (MITM) network attacks, im
     - [Phase 0 — ARP Poisoning Only](#phase-0--arp-poisoning-only)
     - [Phase 1 — TCP Payload Hijacking](#phase-1--tcp-payload-hijacking)
     - [Phase 2 — HTTP Content Injection](#phase-2--http-content-injection)
-  - [Observed Behaviour \& Troubleshooting](#observed-behaviour--troubleshooting)
+  - [Observed Behaviour and Troubleshooting](#observed-behaviour-and-troubleshooting)
   - [References](#references)
 
 ---
@@ -59,7 +59,7 @@ The following UNIX commands recur throughout the workflow and are worth internal
 ---
 
 <a name="concepts"></a>
-## So how does this work? 
+## How does it work? 
 
 ### Address Resolution Protocol (ARP)
 ARP maps an IPv4 address to the MAC (hardware) address that owns it on a local segment. It is stateless and unauthenticated: a host accepts an unsolicited `ARP reply` ("`198.7.0.1 is-at 02:42:…`") and overwrites its cache accordingly. **ARP spoofing** abuses this by continuously sending forged replies to two victims, each claiming that the *other's* IP lives at the **attacker's** MAC. Both victims then transmit to the attacker, who forwards the frames — placing itself invisibly on the path.
@@ -85,6 +85,8 @@ Intercepted MITM traffic lives in **FORWARD**. The rule `-j NFQUEUE --queue-num 
 ## Network Topology
 
 Four services span two bridge subnets. The **router** is dual-homed and bridges `subnet1` (clients) to `subnet2` (servers); **middle** is the attacker, co-located with the server on `subnet2`. The arrows show how `middle` poisons both the `server` and the `router` so that each believes the other resides at `middle`'s MAC address.
+
+Note: I am aware the attacker is theoretically interposed between router and client, however I started the project with this topology and decided it had the same implementation methods and therefore had no need to change it at a later development state. 
 
 ```
             MIDDLE------------\        (attacker / man-in-the-middle)
@@ -254,7 +256,7 @@ Then, from the host, open **http://localhost:5800** (the Firefox container's UI 
 ---
 
 <a name="troubleshooting"></a>
-## Observed Behaviour & Troubleshooting
+## Observed Behaviour and Troubleshooting
 
 - **Slow ARP convergence.** The `router` and `server` caches may take a long time to update. Flush them before or during the attack:
   ```bash
@@ -272,11 +274,10 @@ Then, from the host, open **http://localhost:5800** (the Firefox container's UI 
 <a name="references"></a>
 ## References
 
-- ARP cache poisoning with Scapy — <https://ismailakkila.medium.com/black-hat-python-arp-cache-poisoning-with-scapy-7cb1d8b9d242>
-- Using NFQUEUE with Python the right way — <https://byt3bl33d3r.github.io/using-nfqueue-with-python-the-right-way.html>
-- Injecting code into HTML on a network with Scapy — <https://thepythoncode.com/article/injecting-code-to-html-in-a-network-scapy-python>
-- Netfilter Queue & DNS spoofing examples — <https://networks.hypha.ro/capitolul6/>
-- Clearing the ARP cache on Linux — <https://linux-audit.com/how-to-clear-the-arp-cache-on-linux/>
-- Session hijacking overview — <https://www.geeksforgeeks.org/session-hijacking/>
+- ARP cache poisoning with Scapy: <https://ismailakkila.medium.com/black-hat-python-arp-cache-poisoning-with-scapy-7cb1d8b9d242>
+- Using NFQUEUE with Python the right way: <https://byt3bl33d3r.github.io/using-nfqueue-with-python-the-right-way.html>
+- Injecting code into HTML on a network with Scapy: <https://thepythoncode.com/article/injecting-code-to-html-in-a-network-scapy-python>
+- Netfilter Queue & DNS spoofing examples: <https://networks.hypha.ro/capitolul6/>
+- Clearing the ARP cache on Linux: <https://linux-audit.com/how-to-clear-the-arp-cache-on-linux/>
+- Session hijacking overview: <https://www.geeksforgeeks.org/session-hijacking/>
 
-[↑ Back to top](#top)
